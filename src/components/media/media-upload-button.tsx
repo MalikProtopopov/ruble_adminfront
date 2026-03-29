@@ -2,8 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { MediaPickerDialog } from "./media-picker-dialog";
-import type { MediaAsset } from "@/lib/api/types";
+import type { MediaAsset, MediaUploadKind } from "@/lib/api/types";
 import { useState } from "react";
+
+const PICKER_TITLE: Record<MediaUploadKind, string> = {
+  video: "Выбрать видео",
+  document: "Выбрать документ",
+  audio: "Выбрать аудио",
+};
 
 export function MediaUploadButton({
   uploadType,
@@ -11,7 +17,7 @@ export function MediaUploadButton({
   label = "Загрузить",
   onUploaded,
 }: {
-  uploadType: "video" | "document";
+  uploadType: MediaUploadKind;
   accept: string;
   label?: string;
   onUploaded: (url: string, asset?: MediaAsset) => void;
@@ -28,7 +34,7 @@ export function MediaUploadButton({
         onClose={() => setOpen(false)}
         uploadType={uploadType}
         accept={accept}
-        title={uploadType === "video" ? "Выбрать видео" : "Выбрать документ"}
+        title={PICKER_TITLE[uploadType]}
         onSelect={(asset) => onUploaded(asset.url, asset)}
       />
     </>

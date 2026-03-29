@@ -10,12 +10,14 @@ export function Dialog({
   title,
   children,
   className,
+  closeOnBackdrop = true,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
   className?: string;
+  closeOnBackdrop?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -38,7 +40,7 @@ export function Dialog({
       )}
       onClose={onClose}
       onClick={(e) => {
-        if (e.target === ref.current) onClose();
+        if (closeOnBackdrop && e.target === ref.current) onClose();
       }}
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">

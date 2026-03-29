@@ -452,13 +452,21 @@ export default function CampaignsPage() {
         ) : (
           <div className="space-y-4">
             <div>
-              <Label>Превью (изображение — URL или загрузка видео для ролика)</Label>
+              <Label>Превью (изображение)</Label>
               <Input
                 className="mt-1"
-                placeholder="https://..."
+                placeholder="https://... или выберите из медиатеки"
                 value={thumbUrl}
                 onChange={(e) => setThumbUrl(e.target.value)}
               />
+              <div className="mt-2">
+                <MediaUploadButton
+                  uploadType="document"
+                  accept="image/png,image/jpeg,image/webp"
+                  label="Выбрать из медиатеки"
+                  onUploaded={(url) => setThumbUrl(url)}
+                />
+              </div>
             </div>
             <div>
               <Label>Видео кампании</Label>

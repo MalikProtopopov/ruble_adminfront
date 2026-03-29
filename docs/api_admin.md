@@ -20,6 +20,7 @@
 | `INN_ALREADY_EXISTS` | 409 | Фонд с таким ИНН уже существует |
 | `FILE_TOO_LARGE` | 422 | Файл превышает лимит |
 | `INVALID_FILE_FORMAT` | 422 | Недопустимый формат файла |
+| `INVALID_MEDIA_TYPE` | 422 | Недопустимое значение `type` при загрузке медиа (`video` / `document` / `audio`) |
 | `DUPLICATE_OFFLINE_PAYMENT` | 409 | Офлайн-платёж с такими реквизитами уже зафиксирован |
 | `ADMIN_NOT_FOUND` | 404 | Администратор не найден |
 | `ADMIN_EMAIL_EXISTS` | 409 | Администратор с таким email уже существует |
@@ -439,29 +440,70 @@
 
 **Content-Type:** `multipart/form-data`
 
-**Тело запроса:**
+**Тело запроса (form fields):**
 
 | Ключ | Тип | Обязательность | Описание |
 |------|-----|----------------|----------|
 | `file` | file | required | Файл |
-| `type` | string | required | `video` или `document` |
+| `type` | string | required | `video`, `document` или `audio` |
 
-**Ограничения:**
-- video: max 500 MB, формат mp4
-- document: max 10 MB, формат pdf
+**Ограничения по типам:**
 
-**Ответ 201:**
+| Тип | Макс. размер | Допустимые MIME |
+|-----|--------------|-----------------|
+| `video` | 500 MB | `video/mp4` |
+| `document` | 10 MB | `application/pdf` |
+| `audio` | 50 MB | `audio/mpeg`, `audio/mp4`, `audio/ogg`, `audio/webm` |
+
+**Ответ 200:**
 
 ```json
 {
-  "url": "https://cdn.porubly.ru/media/uuid.mp4",
+  "id": "0195a1b2-c3d4-7e5f-8a90-abcdef123456",
+  "key": "videos/a1b2c3d4e5f6789012345678abcdef.mp4",
+  "url": "https://cdn.porubly.ru/media/....mp4",
   "filename": "video.mp4",
   "size_bytes": 15000000,
   "content_type": "video/mp4"
 }
 ```
 
-**Ошибки:** `422` FILE_TOO_LARGE / INVALID_FILE_FORMAT
+**Ошибки (422):** `INVALID_MEDIA_TYPE`, `FILE_TOO_LARGE`, `INVALID_FILE_FORMAT`
+
+---
+
+### 4.2 GET `/admin/media` — Список загруженных файлов
+
+Курсорная пагинация (как в других списках админки).
+
+**Query-параметры:**
+
+| Параметр | Тип | По умолчанию | Описание |
+|----------|-----|--------------|----------|
+| `limit` | integer | 20 | 1–100 |
+| `cursor` | string | null | Курсор следующей страницы |
+| `type` | string | null | Фильтр: `video`, `document` или `audio` |
+| `search` | string | null | Поиск по имени файла или ключу в хранилище |
+
+**Ответ 200:**
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "key": "…",
+      "url": "https://…",
+      "type": "video",
+      "filename": "clip.mp4",
+      "size_bytes": 15000000,
+      "content_type": "video/mp4",
+      "created_at": "2026-03-28T12:00:00Z"
+    }
+  ],
+  "pagination": { "next_cursor": null, "has_more": false, "total": null }
+}
+```
 
 ---
 
@@ -496,7 +538,7 @@
 | Ключ | Тип | Обязательность | Описание |
 |------|-----|----------------|----------|
 | `type` | string | required | `video` или `audio` |
-| `media_url` | string | required | URL медиа (из media/upload) |
+| `media_url` | string | required | Публичный URL из **POST `/admin/media/upload`**: для видео загрузка с `type=video`, для аудио — с `type=audio` (поле `url` ответа) |
 | `title` | string(255) | optional | Заголовок |
 | `description` | string | optional | Текст |
 

@@ -209,6 +209,8 @@ export interface AdminAccount {
   updated_at: string;
 }
 
+export type MediaUploadKind = "video" | "document" | "audio";
+
 export interface MediaAsset {
   id: string;
   key: string;
@@ -216,7 +218,7 @@ export interface MediaAsset {
   filename: string;
   size_bytes: number;
   content_type: string;
-  type?: "video" | "document";
+  type?: MediaUploadKind;
   uploaded_by_admin_id?: string;
   created_at?: string;
 }

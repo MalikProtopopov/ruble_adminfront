@@ -14,7 +14,6 @@ const baseURL =
 
 export const adminClient = axios.create({
   baseURL,
-  headers: { "Content-Type": "application/json" },
 });
 
 let refreshPromise: Promise<void> | null = null;

@@ -524,21 +524,43 @@ export default function CampaignDetailPage() {
               <Label>Превью URL</Label>
               <Input
                 className="mt-1"
+                placeholder="https://... или выберите из медиатеки"
                 value={draft.thumbnail_url ?? ""}
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, thumbnail_url: e.target.value }))
                 }
               />
+              <div className="mt-2">
+                <MediaUploadButton
+                  uploadType="document"
+                  accept="image/png,image/jpeg,image/webp"
+                  label="Выбрать из медиатеки"
+                  onUploaded={(url) =>
+                    setDraft((d) => ({ ...d, thumbnail_url: url }))
+                  }
+                />
+              </div>
             </div>
             <div>
               <Label>Видео URL</Label>
               <Input
                 className="mt-1"
+                placeholder="https://... или выберите из медиатеки"
                 value={draft.video_url ?? ""}
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, video_url: e.target.value }))
                 }
               />
+              <div className="mt-2">
+                <MediaUploadButton
+                  uploadType="video"
+                  accept="video/mp4"
+                  label="Выбрать из медиатеки"
+                  onUploaded={(url) =>
+                    setDraft((d) => ({ ...d, video_url: url }))
+                  }
+                />
+              </div>
             </div>
             <div>
               <Label>Срочность 1–5</Label>
@@ -657,9 +679,10 @@ export default function CampaignDetailPage() {
             <div className="space-y-2 rounded-md border border-border p-4">
               <SelectField
                 value={thanksType}
-                onChange={(e) =>
-                  setThanksType(e.target.value as "video" | "audio")
-                }
+                onChange={(e) => {
+                  setThanksType(e.target.value as "video" | "audio");
+                  setThanksUrl("");
+                }}
               >
                 <option value="video">video</option>
                 <option value="audio">audio</option>
@@ -675,8 +698,12 @@ export default function CampaignDetailPage() {
                 onChange={(e) => setThanksUrl(e.target.value)}
               />
               <MediaUploadButton
-                uploadType="video"
-                accept="video/mp4,audio/*"
+                uploadType={thanksType === "audio" ? "audio" : "video"}
+                accept={
+                  thanksType === "audio"
+                    ? "audio/mpeg,audio/mp4,audio/ogg,audio/webm"
+                    : "video/mp4"
+                }
                 label="Загрузить медиа"
                 onUploaded={(url) => setThanksUrl(url)}
               />
