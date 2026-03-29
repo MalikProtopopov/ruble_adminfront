@@ -504,19 +504,25 @@ export default function CampaignDetailPage() {
             ) : null}
             {!draft.is_permanent ? (
               <div>
-                <Label>Дата окончания</Label>
+                <Label>Дата завершения</Label>
                 <Input
                   className="mt-1"
-                  type="date"
+                  type="text"
+                  placeholder="ГГГГ-ММ-ДД"
                   value={formatDateInput(draft.ends_at)}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const v = e.target.value;
                     setDraft((d) => ({
                       ...d,
-                      ends_at: e.target.value
-                        ? `${e.target.value}T23:59:59Z`
-                        : null,
-                    }))
-                  }
+                      ends_at: v ? `${v}T23:59:59Z` : null,
+                    }));
+                  }}
+                  onFocus={(e) => {
+                    try { e.target.type = "date"; } catch {}
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.value) e.target.type = "text";
+                  }}
                 />
               </div>
             ) : null}

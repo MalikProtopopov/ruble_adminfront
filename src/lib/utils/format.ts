@@ -1,7 +1,8 @@
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 
-export function formatKopecks(kopecks: number): string {
+export function formatKopecks(kopecks: number | null | undefined): string {
+  if (kopecks == null || Number.isNaN(kopecks)) return "0 ₽";
   const rubles = kopecks / 100;
   return new Intl.NumberFormat("ru-RU", {
     style: "currency",
