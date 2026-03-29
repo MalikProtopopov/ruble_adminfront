@@ -1,0 +1,48 @@
+# Установка: sudo cp deploy/nginx-adminfront.conf.example /etc/nginx/sites-available/porubly-admin-front
+# sudo ln -sf /etc/nginx/sites-available/porubly-admin-front /etc/nginx/sites-enabled/
+# Удалите или отключите старый vhost с root /var/www/porubly-admin для этого server_name.
+#
+# Требуются файлы Let's Encrypt для adminfront (один раз):
+#   sudo certbot certonly --nginx -d adminfront.porublyu.parmenid.tech
+# или certbot --nginx после поднятия только HTTP-блока (см. docs/deploy/SERVER.md).
+#
+# ВАЖНО: шаблон включает SSL, чтобы повторный запуск install-on-server.sh не затирал HTTPS.
+
+server {
+    listen 80;
+    server_name adminfront.porublyu.parmenid.tech;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name adminfront.porublyu.parmenid.tech;
+
+    ssl_certificate /etc/letsencrypt/live/adminfront.porublyu.parmenid.tech/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/adminfront.porublyu.parmenid.tech/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

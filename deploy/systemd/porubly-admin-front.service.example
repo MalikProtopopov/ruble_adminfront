@@ -1,0 +1,20 @@
+[Unit]
+Description=Porublyu admin frontend (Next.js standalone)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/porubly/admin-front/.next/standalone
+Environment=NODE_ENV=production
+Environment=PORT=3001
+Environment=HOSTNAME=127.0.0.1
+EnvironmentFile=-/etc/porubly/admin-front.env
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+
+# Логи: journalctl -u porubly-admin-front -f
+[Install]
+WantedBy=multi-user.target
