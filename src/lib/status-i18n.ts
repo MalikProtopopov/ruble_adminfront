@@ -1,4 +1,4 @@
-import type { CampaignStatus, FoundationStatus } from "@/lib/api/types";
+import type { CampaignStatus, DocumentStatus, FoundationStatus } from "@/lib/api/types";
 
 export function foundationStatusLabel(s: FoundationStatus): string {
   const m: Record<FoundationStatus, string> = {
@@ -15,6 +15,15 @@ export function campaignStatusLabel(s: CampaignStatus): string {
     active: "Активна",
     paused: "Пауза",
     completed: "Завершена",
+    archived: "Архив",
+  };
+  return m[s] ?? s;
+}
+
+export function documentStatusLabel(s: DocumentStatus): string {
+  const m: Record<DocumentStatus, string> = {
+    draft: "Черновик",
+    published: "Опубликован",
     archived: "Архив",
   };
   return m[s] ?? s;

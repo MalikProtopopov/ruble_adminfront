@@ -209,6 +209,20 @@ export interface AdminAccount {
   updated_at: string;
 }
 
+export type DocumentStatus = "draft" | "published" | "archived";
+
+export interface LegalDocument {
+  id: string;
+  title: string;
+  slug: string;
+  content: string | null;
+  file_url: string | null;
+  status: DocumentStatus;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export type MediaUploadKind = "video" | "document" | "audio" | "image";
 
 export interface MediaAsset {

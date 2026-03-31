@@ -14,6 +14,7 @@ import {
   ScrollText,
   Bell,
   Shield,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ const nav = [
   { href: "/users", label: "Пользователи", icon: Users },
   { href: "/payouts", label: "Выплаты", icon: Wallet },
   { href: "/achievements", label: "Достижения", icon: Trophy },
+  { href: "/documents", label: "Документы", icon: FileText },
 ];
 
 const logs = [
