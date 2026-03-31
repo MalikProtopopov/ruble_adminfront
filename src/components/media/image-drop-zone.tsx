@@ -5,7 +5,7 @@ import { getErrorMessage } from "@/lib/api/errors";
 import type { MediaAsset } from "@/lib/api/types";
 import { MediaPickerDialog } from "./media-picker-dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, X, ImageIcon, AlertCircle } from "lucide-react";
+import { Upload, X, ImageIcon, AlertCircle, ExternalLink } from "lucide-react";
 import { useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
 
@@ -33,6 +33,7 @@ export function ImageDropZone({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const uploadFile = useCallback(
@@ -68,6 +69,7 @@ export function ImageDropZone({
           },
         });
         toast.success("Изображение загружено");
+        setImgError(false);
         onChange(res.data.url);
       } catch (err) {
         const msg = getErrorMessage(err);
@@ -93,61 +95,6 @@ export function ImageDropZone({
     if (file) void uploadFile(file);
   }
 
-  if (value) {
-    return (
-      <>
-        <div className="group relative inline-block rounded-lg border border-border bg-bg-secondary p-2">
-          <img
-            src={value}
-            alt={label ?? "Превью"}
-            className="max-h-40 max-w-full rounded object-contain"
-          />
-          <div className="mt-2 flex gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="text-xs"
-              onClick={() => setPickerOpen(true)}
-            >
-              Заменить
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-xs"
-              onClick={() => inputRef.current?.click()}
-            >
-              <Upload className="mr-1 size-3" />
-              Загрузить
-            </Button>
-            <button
-              type="button"
-              className="ml-auto rounded p-1 text-text-muted transition-colors hover:bg-bg-tertiary hover:text-danger"
-              onClick={() => onChange("")}
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-        </div>
-        <input
-          ref={inputRef}
-          type="file"
-          className="hidden"
-          accept={IMAGE_ACCEPT}
-          onChange={onFileChange}
-        />
-        <MediaPickerDialog
-          open={pickerOpen}
-          onClose={() => setPickerOpen(false)}
-          uploadType="image"
-          accept={IMAGE_ACCEPT}
-          title="Выбрать изображение"
-          onSelect={(asset) => onChange(asset.url)}
-        />
-      </>
-    );
-  }
-
   return (
     <>
       <input
@@ -157,8 +104,10 @@ export function ImageDropZone({
         accept={IMAGE_ACCEPT}
         onChange={onFileChange}
       />
+
+      {/* Drop zone — always visible */}
       <div
-        className={`flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors ${
+        className={`flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-4 transition-colors ${
           dragOver
             ? "border-accent bg-accent-muted"
             : "border-border hover:border-border-strong hover:bg-bg-tertiary"
@@ -203,9 +152,11 @@ export function ImageDropZone({
           </>
         ) : (
           <>
-            <ImageIcon className="size-6 text-text-muted" />
+            <Upload className="size-5 text-text-muted" />
             <p className="text-sm text-text-secondary">
-              Перетащите изображение или нажмите для загрузки
+              {value
+                ? "Перетащите новое изображение для замены"
+                : "Перетащите изображение или нажмите для загрузки"}
             </p>
             <p className="text-xs text-text-muted">
               PNG, JPEG, WebP, GIF, SVG — до 20 МБ
@@ -224,13 +175,75 @@ export function ImageDropZone({
           </>
         )}
       </div>
+
+      {/* Preview card — shown when value exists */}
+      {value ? (
+        <div className="mt-3 flex items-start gap-3 rounded-lg border border-border bg-bg-secondary p-3">
+          <div className="shrink-0 overflow-hidden rounded-md border border-border bg-bg-primary">
+            {imgError ? (
+              <div className="flex size-20 items-center justify-center">
+                <ImageIcon className="size-6 text-text-muted" />
+              </div>
+            ) : (
+              <img
+                src={value}
+                alt={label ?? "Превью"}
+                className="size-20 object-contain"
+                onError={() => setImgError(true)}
+              />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm text-text-primary">
+              {label ?? "Текущее изображение"}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-text-muted" title={value}>
+              {value}
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="text-xs"
+                onClick={() => setPickerOpen(true)}
+              >
+                Заменить
+              </Button>
+              <a
+                href={value}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
+              >
+                <ExternalLink className="size-3" />
+                Открыть
+              </a>
+              <button
+                type="button"
+                className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:bg-bg-tertiary hover:text-danger"
+                onClick={() => {
+                  setImgError(false);
+                  onChange("");
+                }}
+              >
+                <X className="size-3" />
+                Открепить
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <MediaPickerDialog
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         uploadType="image"
         accept={IMAGE_ACCEPT}
         title="Выбрать изображение"
-        onSelect={(asset) => onChange(asset.url)}
+        onSelect={(asset) => {
+          setImgError(false);
+          onChange(asset.url);
+        }}
       />
     </>
   );
