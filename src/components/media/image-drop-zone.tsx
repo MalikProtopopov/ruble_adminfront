@@ -9,9 +9,9 @@ import { Upload, X, ImageIcon, AlertCircle } from "lucide-react";
 import { useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
 
-const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp,image/svg+xml";
+const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
 const IMAGE_MIMES = new Set(IMAGE_ACCEPT.split(","));
-const MAX_SIZE = 10 * 1024 * 1024;
+const MAX_SIZE = 20 * 1024 * 1024;
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -40,7 +40,7 @@ export function ImageDropZone({
       setError(null);
 
       if (!IMAGE_MIMES.has(file.type)) {
-        const msg = "Неверный тип файла. Ожидается изображение (PNG, JPEG, WebP, SVG)";
+        const msg = "Неверный тип файла. Ожидается изображение (PNG, JPEG, WebP, GIF, SVG)";
         setError(msg);
         toast.error(msg);
         return;
@@ -208,7 +208,7 @@ export function ImageDropZone({
               Перетащите изображение или нажмите для загрузки
             </p>
             <p className="text-xs text-text-muted">
-              PNG, JPEG, WebP, SVG — до 10 МБ
+              PNG, JPEG, WebP, GIF, SVG — до 20 МБ
             </p>
             <Button
               type="button"
