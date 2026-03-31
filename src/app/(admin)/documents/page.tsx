@@ -1,7 +1,6 @@
 "use client";
 
 import { adminClient } from "@/lib/api/admin-client";
-import { getErrorMessage } from "@/lib/api/errors";
 import { buildListParams } from "@/lib/api/pagination";
 import type { LegalDocument, Paginated } from "@/lib/api/types";
 import { documentStatusLabel } from "@/lib/status-i18n";
@@ -9,26 +8,15 @@ import { formatDate } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import { SelectField } from "@/components/ui/select-field";
-import { Textarea } from "@/components/ui/textarea";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useDeferredValue } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { z } from "zod";
 
 function statusVariant(
   s: LegalDocument["status"],
@@ -38,19 +26,6 @@ function statusVariant(
   if (s === "archived") return "danger";
   return "default";
 }
-
-const createSchema = z.object({
-  title: z.string().min(1, "Обязательно"),
-  slug: z
-    .string()
-    .min(1, "Обязательно")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Только латиница, цифры и дефисы"),
-  content: z.string().optional(),
-  status: z.enum(["draft", "published", "archived"]),
-  is_public: z.boolean(),
-});
-
-type CreateForm = z.infer<typeof createSchema>;
 
 const PAGE_SIZE = 25;
 
@@ -86,6 +61,26 @@ const columns: ColumnDef<LegalDocument>[] = [
     ),
   },
   {
+    accessorKey: "document_version",
+    header: "Версия",
+    cell: ({ row }) => (
+      <span className="text-xs text-text-secondary">
+        {row.original.document_version ?? "—"}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "document_date",
+    header: "Дата документа",
+    cell: ({ row }) => (
+      <span className="text-xs text-text-secondary">
+        {row.original.document_date
+          ? formatDate(row.original.document_date)
+          : "—"}
+      </span>
+    ),
+  },
+  {
     accessorKey: "file_url",
     header: "Файл",
     cell: ({ row }) =>
@@ -103,32 +98,20 @@ const columns: ColumnDef<LegalDocument>[] = [
       ),
   },
   {
-    accessorKey: "created_at",
-    header: "Создан",
+    accessorKey: "updated_at",
+    header: "Обновлён",
     cell: ({ row }) => (
       <span className="text-xs text-text-secondary">
-        {formatDate(row.original.created_at)}
+        {formatDate(row.original.updated_at)}
       </span>
     ),
   },
 ];
 
 export default function DocumentsPage() {
-  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [status, setStatus] = useState<string>("");
-  const [modal, setModal] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<CreateForm>({
-    resolver: zodResolver(createSchema),
-    defaultValues: { title: "", slug: "", content: "", status: "draft", is_public: true },
-  });
 
   const { data, fetchNextPage, hasNextPage, isFetching, isLoading } =
     useInfiniteQuery({
@@ -155,27 +138,12 @@ export default function DocumentsPage() {
     [data],
   );
 
-  const createMut = useMutation({
-    mutationFn: async (values: CreateForm) => {
-      await adminClient.post("/documents", values);
-    },
-    onSuccess: () => {
-      toast.success("Документ создан");
-      reset();
-      setModal(false);
-      void qc.invalidateQueries({ queryKey: ["documents"] });
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
-
-  function onSubmit(values: CreateForm) {
-    createMut.mutate(values);
-  }
-
   return (
     <div>
       <PageHeader
         breadcrumbs={[{ label: "Документы" }]}
+        onRefresh={() => void fetchNextPage()}
+        isRefreshing={isFetching && !isLoading}
       />
 
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -197,7 +165,9 @@ export default function DocumentsPage() {
             <option value="archived">Архив</option>
           </SelectField>
         </div>
-        <Button onClick={() => setModal(true)}>+ Создать документ</Button>
+        <Link href="/documents/new">
+          <Button type="button">+ Создать документ</Button>
+        </Link>
       </div>
 
       {isLoading ? null : rows.length === 0 ? (
@@ -207,65 +177,21 @@ export default function DocumentsPage() {
           description="Создайте первый документ"
         />
       ) : (
-        <DataTable columns={columns} data={rows} />
+        <>
+          <DataTable columns={columns} data={rows} />
+          {hasNextPage && (
+            <div className="mt-3 flex justify-center">
+              <Button
+                variant="secondary"
+                onClick={() => void fetchNextPage()}
+                isLoading={isFetching}
+              >
+                Загрузить ещё
+              </Button>
+            </div>
+          )}
+        </>
       )}
-
-      <Dialog
-        open={modal}
-        onClose={() => setModal(false)}
-        title="Новый документ"
-        className="w-[min(100%-2rem,500px)]"
-      >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label>Название</Label>
-            <Input
-              className="mt-1"
-              {...register("title")}
-              error={errors.title?.message}
-            />
-          </div>
-          <div>
-            <Label>Slug (URL)</Label>
-            <Input
-              className="mt-1"
-              placeholder="privacy-policy"
-              {...register("slug")}
-              error={errors.slug?.message}
-            />
-            <p className="mt-1 text-xs text-text-muted">
-              Латиница, цифры и дефисы. Будет использоваться в публичной ссылке.
-            </p>
-          </div>
-          <div>
-            <Label>Содержание</Label>
-            <Textarea
-              className="mt-1"
-              rows={6}
-              {...register("content")}
-            />
-          </div>
-          <div>
-            <Label>Статус</Label>
-            <SelectField className="mt-1" {...register("status")}>
-              <option value="draft">Черновик</option>
-              <option value="published">Опубликован</option>
-            </SelectField>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setModal(false)}
-            >
-              Отмена
-            </Button>
-            <Button type="submit" isLoading={createMut.isPending}>
-              Создать
-            </Button>
-          </div>
-        </form>
-      </Dialog>
     </div>
   );
 }

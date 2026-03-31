@@ -215,10 +215,15 @@ export interface LegalDocument {
   id: string;
   title: string;
   slug: string;
+  excerpt: string | null;
   content: string | null;
-  file_url: string | null;
   status: DocumentStatus;
-  is_public: boolean;
+  document_version: string | null;
+  document_date: string | null;
+  published_at: string | null;
+  file_url: string | null;
+  sort_order: number;
+  version: number;
   created_at: string;
   updated_at: string;
 }

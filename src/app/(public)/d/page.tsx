@@ -2,12 +2,13 @@ import { FileText } from "lucide-react";
 import Link from "next/link";
 
 interface PublicDocument {
-  id: string;
-  title: string;
   slug: string;
+  title: string;
+  excerpt: string | null;
+  document_version: string | null;
+  document_date: string | null;
+  published_at: string | null;
   file_url: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "";
@@ -46,7 +47,7 @@ export default async function PublicDocumentsPage() {
       ) : (
         <ul className="space-y-3">
           {docs.map((doc) => (
-            <li key={doc.id}>
+            <li key={doc.slug}>
               <Link
                 href={`/d/${doc.slug}`}
                 className="flex items-start gap-3 rounded-lg border border-border bg-bg-secondary p-4 transition-colors hover:bg-bg-tertiary"
@@ -54,10 +55,20 @@ export default async function PublicDocumentsPage() {
                 <FileText className="mt-0.5 size-5 shrink-0 text-accent" />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-text-primary">{doc.title}</p>
-                  <p className="mt-1 text-xs text-text-muted">
-                    Обновлён:{" "}
-                    {new Date(doc.updated_at).toLocaleDateString("ru-RU")}
-                  </p>
+                  {doc.excerpt && (
+                    <p className="mt-1 text-sm text-text-secondary">
+                      {doc.excerpt}
+                    </p>
+                  )}
+                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-text-muted">
+                    {doc.document_version && <span>v{doc.document_version}</span>}
+                    {doc.document_date && (
+                      <span>
+                        {new Date(doc.document_date).toLocaleDateString("ru-RU")}
+                      </span>
+                    )}
+                    {doc.file_url && <span className="text-accent">PDF</span>}
+                  </div>
                 </div>
               </Link>
             </li>

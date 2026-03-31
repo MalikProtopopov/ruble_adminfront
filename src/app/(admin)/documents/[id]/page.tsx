@@ -1,7 +1,7 @@
 "use client";
 
 import { adminClient } from "@/lib/api/admin-client";
-import { getErrorMessage } from "@/lib/api/errors";
+import { getErrorMessage, getErrorCode } from "@/lib/api/errors";
 import type { LegalDocument } from "@/lib/api/types";
 import { documentStatusLabel } from "@/lib/status-i18n";
 import { formatDateTime } from "@/lib/utils/format";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import { SelectField } from "@/components/ui/select-field";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, Trash2, Upload } from "lucide-react";
 import Link from "next/link";
@@ -20,8 +21,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-const FILE_ACCEPT =
-  "application/pdf,.docx,.xlsx,.pptx,.txt,.csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation";
+const FILE_ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv";
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 function statusVariant(
@@ -38,7 +38,7 @@ export default function DocumentDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
 
-  const { data: doc, isLoading } = useQuery({
+  const { data: doc, isLoading, refetch } = useQuery({
     queryKey: ["documents", id],
     queryFn: async () => {
       const res = await adminClient.get<LegalDocument>(`/documents/${id}`);
@@ -46,7 +46,14 @@ export default function DocumentDetailPage() {
     },
   });
 
-  const [draft, setDraft] = useState<Partial<LegalDocument>>({});
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [excerpt, setExcerpt] = useState("");
+  const [content, setContent] = useState("");
+  const [status, setStatus] = useState<LegalDocument["status"]>("draft");
+  const [docVersion, setDocVersion] = useState("");
+  const [docDate, setDocDate] = useState("");
+  const [sortOrder, setSortOrder] = useState("0");
   const [dirty, setDirty] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -55,25 +62,37 @@ export default function DocumentDetailPage() {
 
   useEffect(() => {
     if (doc) {
-      setDraft({
-        title: doc.title,
-        slug: doc.slug,
-        content: doc.content ?? "",
-        status: doc.status,
-        is_public: doc.is_public,
-      });
+      setTitle(doc.title);
+      setSlug(doc.slug);
+      setExcerpt(doc.excerpt ?? "");
+      setContent(doc.content ?? "");
+      setStatus(doc.status);
+      setDocVersion(doc.document_version ?? "");
+      setDocDate(doc.document_date ?? "");
+      setSortOrder(String(doc.sort_order));
       setDirty(false);
     }
   }, [doc]);
 
-  function update(patch: Partial<LegalDocument>) {
-    setDraft((d) => ({ ...d, ...patch }));
+  function markDirty() {
     setDirty(true);
   }
 
   const patchMut = useMutation({
     mutationFn: async () => {
-      await adminClient.patch(`/documents/${id}`, draft);
+      if (!doc) return;
+      const res = await adminClient.patch<LegalDocument>(`/documents/${id}`, {
+        title,
+        slug,
+        excerpt: excerpt || null,
+        content: content || null,
+        status,
+        document_version: docVersion || null,
+        document_date: docDate || null,
+        sort_order: Number(sortOrder) || 0,
+        version: doc.version,
+      });
+      return res.data;
     },
     onSuccess: () => {
       toast.success("Сохранено");
@@ -81,13 +100,37 @@ export default function DocumentDetailPage() {
       void qc.invalidateQueries({ queryKey: ["documents", id] });
       void qc.invalidateQueries({ queryKey: ["documents"] });
     },
+    onError: (err) => {
+      if (getErrorCode(err) === "VERSION_CONFLICT") {
+        toast.error("Документ был изменён другим пользователем. Перезагрузите страницу.");
+      } else {
+        toast.error(getErrorMessage(err));
+      }
+    },
+  });
+
+  const publishMut = useMutation({
+    mutationFn: () => adminClient.post(`/documents/${id}/publish`),
+    onSuccess: () => {
+      toast.success("Опубликован");
+      void refetch();
+      void qc.invalidateQueries({ queryKey: ["documents"] });
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const unpublishMut = useMutation({
+    mutationFn: () => adminClient.post(`/documents/${id}/unpublish`),
+    onSuccess: () => {
+      toast.success("Переведён в черновик");
+      void refetch();
+      void qc.invalidateQueries({ queryKey: ["documents"] });
+    },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const deleteMut = useMutation({
-    mutationFn: async () => {
-      await adminClient.delete(`/documents/${id}`);
-    },
+    mutationFn: () => adminClient.delete(`/documents/${id}`),
     onSuccess: () => {
       toast.success("Документ удалён");
       void qc.invalidateQueries({ queryKey: ["documents"] });
@@ -112,7 +155,7 @@ export default function DocumentDetailPage() {
         },
       });
       toast.success("Файл загружен");
-      void qc.invalidateQueries({ queryKey: ["documents", id] });
+      void refetch();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -121,12 +164,10 @@ export default function DocumentDetailPage() {
   }
 
   const deleteFileMut = useMutation({
-    mutationFn: async () => {
-      await adminClient.delete(`/documents/${id}/file`);
-    },
+    mutationFn: () => adminClient.delete(`/documents/${id}/file`),
     onSuccess: () => {
       toast.success("Файл удалён");
-      void qc.invalidateQueries({ queryKey: ["documents", id] });
+      void refetch();
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -147,16 +188,6 @@ export default function DocumentDetailPage() {
 
   return (
     <div>
-      <div className="mb-4">
-        <Link
-          href="/documents"
-          className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft className="size-4" />
-          Документы
-        </Link>
-      </div>
-
       <PageHeader
         breadcrumbs={[
           { label: "Документы", href: "/documents" },
@@ -164,10 +195,13 @@ export default function DocumentDetailPage() {
         ]}
       />
 
-      <div className="mb-6 flex items-center gap-2">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         <Badge variant={statusVariant(doc.status)}>
           {documentStatusLabel(doc.status)}
         </Badge>
+        {doc.document_version && (
+          <span className="text-xs text-text-muted">v{doc.document_version}</span>
+        )}
         <Link
           href={`/d/${doc.slug}`}
           target="_blank"
@@ -176,6 +210,25 @@ export default function DocumentDetailPage() {
           <ExternalLink className="size-3" />
           Публичная ссылка
         </Link>
+        {doc.status === "draft" || doc.status === "archived" ? (
+          <Button
+            variant="secondary"
+            className="text-xs"
+            onClick={() => publishMut.mutate()}
+            isLoading={publishMut.isPending}
+          >
+            Опубликовать
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            className="text-xs"
+            onClick={() => unpublishMut.mutate()}
+            isLoading={unpublishMut.isPending}
+          >
+            В черновик
+          </Button>
+        )}
         <Button
           variant="danger"
           onClick={() => setConfirmDelete(true)}
@@ -184,73 +237,96 @@ export default function DocumentDetailPage() {
         </Button>
       </div>
 
-      <div className="mt-6 grid max-w-3xl gap-6">
+      <div className="max-w-4xl space-y-6">
         <div className="space-y-4 rounded-md border border-border bg-bg-secondary p-6">
-          <div>
-            <Label>Название</Label>
-            <Input
-              className="mt-1"
-              value={draft.title ?? ""}
-              onChange={(e) => update({ title: e.target.value })}
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Название</Label>
+              <Input
+                className="mt-1"
+                value={title}
+                onChange={(e) => { setTitle(e.target.value); markDirty(); }}
+              />
+            </div>
+            <div>
+              <Label>Slug</Label>
+              <Input
+                className="mt-1 font-mono"
+                value={slug}
+                onChange={(e) => { setSlug(e.target.value); markDirty(); }}
+              />
+              <p className="mt-1 text-xs text-text-muted">
+                Публичная ссылка: /d/{slug}
+              </p>
+            </div>
           </div>
           <div>
-            <Label>Slug</Label>
-            <Input
-              className="mt-1"
-              value={draft.slug ?? ""}
-              onChange={(e) => update({ slug: e.target.value })}
-            />
-            <p className="mt-1 text-xs text-text-muted">
-              Публичная ссылка: /d/{draft.slug || "..."}
-            </p>
-          </div>
-          <div>
-            <Label>Содержание</Label>
+            <Label>Краткое описание</Label>
             <Textarea
-              className="mt-1 min-h-[200px]"
-              value={draft.content ?? ""}
-              onChange={(e) => update({ content: e.target.value })}
+              className="mt-1"
+              value={excerpt}
+              onChange={(e) => { setExcerpt(e.target.value); markDirty(); }}
+              rows={2}
             />
           </div>
-          <div className="flex gap-4">
-            <div className="flex-1">
+          <div>
+            <Label>Содержимое</Label>
+            <div className="mt-1">
+              <RichTextEditor
+                value={content}
+                onChange={(val) => { setContent(val); markDirty(); }}
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-4">
+            <div>
               <Label>Статус</Label>
               <SelectField
                 className="mt-1"
-                value={draft.status ?? doc.status}
-                onChange={(e) =>
-                  update({ status: e.target.value as LegalDocument["status"] })
-                }
+                value={status}
+                onChange={(e) => { setStatus(e.target.value as LegalDocument["status"]); markDirty(); }}
               >
                 <option value="draft">Черновик</option>
                 <option value="published">Опубликован</option>
                 <option value="archived">Архив</option>
               </SelectField>
             </div>
-            <div className="flex-1">
-              <Label>Публичный доступ</Label>
-              <SelectField
+            <div>
+              <Label>Версия документа</Label>
+              <Input
                 className="mt-1"
-                value={draft.is_public ? "true" : "false"}
-                onChange={(e) =>
-                  update({ is_public: e.target.value === "true" })
-                }
-              >
-                <option value="true">Да</option>
-                <option value="false">Нет</option>
-              </SelectField>
+                value={docVersion}
+                onChange={(e) => { setDocVersion(e.target.value); markDirty(); }}
+                placeholder="1.0"
+              />
+            </div>
+            <div>
+              <Label>Дата документа</Label>
+              <Input
+                className="mt-1"
+                type="date"
+                value={docDate}
+                onChange={(e) => { setDocDate(e.target.value); markDirty(); }}
+              />
+            </div>
+            <div>
+              <Label>Сортировка</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                value={sortOrder}
+                onChange={(e) => { setSortOrder(e.target.value); markDirty(); }}
+              />
             </div>
           </div>
-          {dirty ? (
+          {dirty && (
             <Button
-              type="button"
               onClick={() => patchMut.mutate()}
               isLoading={patchMut.isPending}
             >
               Сохранить
             </Button>
-          ) : null}
+          )}
         </div>
 
         <div className="space-y-4 rounded-md border border-border bg-bg-secondary p-6">
@@ -313,7 +389,7 @@ export default function DocumentDetailPage() {
               </div>
             )}
             <p className="mt-2 text-xs text-text-muted">
-              PDF, DOCX, XLSX, PPTX, TXT, CSV — до 50 МБ
+              PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV — до 50 МБ
             </p>
           </div>
         </div>
@@ -321,6 +397,8 @@ export default function DocumentDetailPage() {
         <div className="text-xs text-text-muted">
           <p>Создан: {formatDateTime(doc.created_at)}</p>
           <p>Обновлён: {formatDateTime(doc.updated_at)}</p>
+          {doc.published_at && <p>Опубликован: {formatDateTime(doc.published_at)}</p>}
+          <p>Версия записи: {doc.version}</p>
         </div>
       </div>
 
@@ -328,7 +406,7 @@ export default function DocumentDetailPage() {
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
         title="Удалить документ?"
-        description={`Документ «${doc.title}» будет удалён безвозвратно.`}
+        description={`Документ «${doc.title}» будет удалён.`}
         confirmLabel="Удалить"
         onConfirm={() => deleteMut.mutate()}
         isLoading={deleteMut.isPending}
