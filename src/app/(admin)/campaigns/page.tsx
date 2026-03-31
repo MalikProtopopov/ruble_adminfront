@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import { SelectField } from "@/components/ui/select-field";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageDropZone } from "@/components/media/image-drop-zone";
 import { MediaUploadButton } from "@/components/media/media-upload-button";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -453,18 +454,11 @@ export default function CampaignsPage() {
           <div className="space-y-4">
             <div>
               <Label>Превью (изображение)</Label>
-              <Input
-                className="mt-1"
-                placeholder="https://... или выберите из медиатеки"
-                value={thumbUrl}
-                onChange={(e) => setThumbUrl(e.target.value)}
-              />
-              <div className="mt-2">
-                <MediaUploadButton
-                  uploadType="document"
-                  accept="image/png,image/jpeg,image/webp"
-                  label="Выбрать из медиатеки"
-                  onUploaded={(url) => setThumbUrl(url)}
+              <div className="mt-1">
+                <ImageDropZone
+                  value={thumbUrl}
+                  onChange={setThumbUrl}
+                  label="Превью кампании"
                 />
               </div>
             </div>

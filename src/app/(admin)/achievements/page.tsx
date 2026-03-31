@@ -9,6 +9,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ImageDropZone } from "@/components/media/image-drop-zone";
 import { PageHeader } from "@/components/ui/page-header";
 import { SelectField } from "@/components/ui/select-field";
 import { Textarea } from "@/components/ui/textarea";
@@ -213,12 +214,14 @@ function AchievementFormDialog({
           />
         </div>
         <div>
-          <Label>URL иконки</Label>
-          <Input
-            className="mt-1"
-            value={iconUrl}
-            onChange={(e) => setIconUrl(e.target.value)}
-          />
+          <Label>Иконка</Label>
+          <div className="mt-1">
+            <ImageDropZone
+              value={iconUrl}
+              onChange={setIconUrl}
+              label="Иконка достижения"
+            />
+          </div>
         </div>
         <div>
           <Label>Тип условия</Label>

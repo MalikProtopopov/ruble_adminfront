@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import { SelectField } from "@/components/ui/select-field";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageDropZone } from "@/components/media/image-drop-zone";
 import { MediaUploadButton } from "@/components/media/media-upload-button";
 import {
   useInfiniteQuery,
@@ -527,23 +528,14 @@ export default function CampaignDetailPage() {
               </div>
             ) : null}
             <div>
-              <Label>Превью URL</Label>
-              <Input
-                className="mt-1"
-                placeholder="https://... или выберите из медиатеки"
-                value={draft.thumbnail_url ?? ""}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, thumbnail_url: e.target.value }))
-                }
-              />
-              <div className="mt-2">
-                <MediaUploadButton
-                  uploadType="document"
-                  accept="image/png,image/jpeg,image/webp"
-                  label="Выбрать из медиатеки"
-                  onUploaded={(url) =>
+              <Label>Превью</Label>
+              <div className="mt-1">
+                <ImageDropZone
+                  value={draft.thumbnail_url ?? ""}
+                  onChange={(url) =>
                     setDraft((d) => ({ ...d, thumbnail_url: url }))
                   }
+                  label="Превью кампании"
                 />
               </div>
             </div>

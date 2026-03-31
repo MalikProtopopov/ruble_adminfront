@@ -9,6 +9,7 @@ const PICKER_TITLE: Record<MediaUploadKind, string> = {
   video: "Выбрать видео",
   document: "Выбрать документ",
   audio: "Выбрать аудио",
+  image: "Выбрать изображение",
 };
 
 export function MediaUploadButton({

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import { SelectField } from "@/components/ui/select-field";
 import { Textarea } from "@/components/ui/textarea";
-import { MediaUploadButton } from "@/components/media/media-upload-button";
+import { ImageDropZone } from "@/components/media/image-drop-zone";
 import {
   useMutation,
   useQuery,
@@ -156,22 +156,13 @@ function FoundationEditor({
             </div>
             <div>
               <Label>Логотип</Label>
-              <Input
-                className="mt-1"
-                placeholder="https://... или выберите из медиатеки"
-                value={draft.logo_url ?? ""}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, logo_url: e.target.value }))
-                }
-              />
-              <div className="mt-2">
-                <MediaUploadButton
-                  uploadType="document"
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  label="Выбрать из медиатеки"
-                  onUploaded={(url) =>
+              <div className="mt-1">
+                <ImageDropZone
+                  value={draft.logo_url ?? ""}
+                  onChange={(url) =>
                     setDraft((d) => ({ ...d, logo_url: url }))
                   }
+                  label="Логотип фонда"
                 />
               </div>
             </div>

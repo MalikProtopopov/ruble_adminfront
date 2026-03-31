@@ -209,7 +209,7 @@ export interface AdminAccount {
   updated_at: string;
 }
 
-export type MediaUploadKind = "video" | "document" | "audio";
+export type MediaUploadKind = "video" | "document" | "audio" | "image";
 
 export interface MediaAsset {
   id: string;

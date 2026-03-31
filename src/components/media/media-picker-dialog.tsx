@@ -27,10 +27,18 @@ const AUDIO_MIMES = new Set([
   "audio/webm",
 ]);
 
+const IMAGE_MIMES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+]);
+
 const SIZE_LIMITS: Record<MediaUploadKind, number> = {
   video: 500 * 1024 * 1024,
   document: 10 * 1024 * 1024,
   audio: 50 * 1024 * 1024,
+  image: 10 * 1024 * 1024,
 };
 
 function formatBytes(bytes: number): string {
@@ -52,18 +60,21 @@ function mediaIcon(contentType: string) {
 function fileMatchesUploadKind(file: File, kind: MediaUploadKind): boolean {
   if (kind === "video") return file.type === "video/mp4";
   if (kind === "document") return file.type === "application/pdf";
+  if (kind === "image") return IMAGE_MIMES.has(file.type);
   return AUDIO_MIMES.has(file.type);
 }
 
 function expectedKindLabel(kind: MediaUploadKind): string {
   if (kind === "video") return "видео (MP4)";
   if (kind === "document") return "документ (PDF)";
+  if (kind === "image") return "изображение (PNG, JPEG, WebP, SVG)";
   return "аудио (MPEG, MP4, OGG, WebM)";
 }
 
 function uploadHint(kind: MediaUploadKind): string {
   if (kind === "video") return "Видео: MP4, до 500 МБ";
   if (kind === "document") return "Документ: PDF, до 10 МБ";
+  if (kind === "image") return "Изображение: PNG, JPEG, WebP, SVG, до 10 МБ";
   return "Аудио: MPEG, MP4, OGG, WebM, до 50 МБ";
 }
 

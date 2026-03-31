@@ -13,6 +13,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ImageDropZone } from "@/components/media/image-drop-zone";
 import { PageHeader } from "@/components/ui/page-header";
 import { SelectField } from "@/components/ui/select-field";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,11 +70,15 @@ export default function FoundationsPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<CreateForm>({
     resolver: zodResolver(createSchema),
     defaultValues: { name: "", legal_name: "", inn: "", description: "" },
   });
+
+  const logoUrl = watch("logo_url");
 
   const { data, fetchNextPage, hasNextPage, isFetching, isLoading, refetch } =
     useInfiniteQuery({
@@ -259,8 +264,14 @@ export default function FoundationsPage() {
             />
           </div>
           <div>
-            <Label>URL логотипа</Label>
-            <Input className="mt-1" {...register("logo_url")} />
+            <Label>Логотип</Label>
+            <div className="mt-1">
+              <ImageDropZone
+                value={logoUrl ?? ""}
+                onChange={(url) => setValue("logo_url", url)}
+                label="Логотип фонда"
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button
