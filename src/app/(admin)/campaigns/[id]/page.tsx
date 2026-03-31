@@ -486,7 +486,7 @@ export default function CampaignDetailPage() {
             </div>
             {!draft.is_permanent ? (
               <div>
-                <Label>Цель (копейки / введите рубли)</Label>
+                <Label>Целевая сумма (₽)</Label>
                 <Input
                   className="mt-1 font-mono"
                   value={

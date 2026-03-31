@@ -3,6 +3,7 @@
 import { adminClient } from "@/lib/api/admin-client";
 import { getErrorMessage } from "@/lib/api/errors";
 import type { Achievement } from "@/lib/api/types";
+import { rublesToKopecks } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -142,7 +143,11 @@ function AchievementFormDialog({
       setDescription(initial.description ?? "");
       setIconUrl(initial.icon_url ?? "");
       setConditionType(initial.condition_type);
-      setConditionValue(String(initial.condition_value));
+      setConditionValue(
+        initial.condition_type === "total_amount_kopecks"
+          ? String(initial.condition_value / 100)
+          : String(initial.condition_value),
+      );
     } else {
       setCode("");
       setTitle("");
@@ -155,13 +160,17 @@ function AchievementFormDialog({
 
   const mut = useMutation({
     mutationFn: async () => {
+      const value =
+        conditionType === "total_amount_kopecks"
+          ? rublesToKopecks(conditionValue)
+          : Number(conditionValue);
       if (initial) {
         await adminClient.patch(`/achievements/${initial.id}`, {
           title,
           description: description || undefined,
           icon_url: iconUrl || undefined,
           condition_type: conditionType,
-          condition_value: Number(conditionValue),
+          condition_value: value,
         });
       } else {
         await adminClient.post("/achievements", {
@@ -170,7 +179,7 @@ function AchievementFormDialog({
           description: description || undefined,
           icon_url: iconUrl || undefined,
           condition_type: conditionType,
-          condition_value: Number(conditionValue),
+          condition_value: value,
         });
       }
     },
@@ -236,7 +245,11 @@ function AchievementFormDialog({
           </SelectField>
         </div>
         <div>
-          <Label>Значение порога</Label>
+          <Label>
+            Значение порога
+            {conditionType === "total_amount_kopecks" ? " (₽)" : ""}
+            {conditionType === "streak_days" ? " (дней)" : ""}
+          </Label>
           <Input
             className="mt-1"
             type="number"
